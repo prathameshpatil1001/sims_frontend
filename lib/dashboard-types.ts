@@ -82,12 +82,12 @@ export interface DashboardState {
   zone4State: Zone4State | null;
   overlayState: OverlayState;
   csvViewerState: CSVViewerState;
-  zone4State: Zone4State;
   killSwitchArmed: boolean;
   killSwitchCountdown: number;
   dailyPnL: number;
   isLoading: boolean;
   error: string | null;
+  paperTradingEnabled: boolean;
 }
 
 export type DashboardAction =
@@ -110,4 +110,5 @@ export type DashboardAction =
   | { type: 'SET_DAILY_PNL'; payload: number }
   | { type: 'SET_LOADING'; payload: boolean }
   | { type: 'SET_ERROR'; payload: string | null }
+  | { type: 'TOGGLE_PAPER_TRADING'; payload: boolean }
   | { type: 'RESET_DASHBOARD' };

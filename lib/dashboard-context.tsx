@@ -68,6 +68,7 @@ const initialState: DashboardState = {
   dailyPnL: 0,
   isLoading: false,
   error: null,
+  paperTradingEnabled: false,
 };
 
 function dashboardReducer(state: DashboardState, action: DashboardAction): DashboardState {
@@ -168,6 +169,8 @@ function dashboardReducer(state: DashboardState, action: DashboardAction): Dashb
       return { ...state, isLoading: action.payload };
     case 'SET_ERROR':
       return { ...state, error: action.payload };
+    case 'TOGGLE_PAPER_TRADING':
+      return { ...state, paperTradingEnabled: action.payload };
     case 'RESET_DASHBOARD':
       return initialState;
     default:

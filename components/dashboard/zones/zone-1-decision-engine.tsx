@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { useDashboard } from '@/lib/dashboard-context';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { PaperTradingEntryPanel } from './paper-trading-entry-panel';
 import type { DirectionalSignal, SignalCondition, TradeSetup, ConditionStatus } from '@/lib/zone1-types';
 import { paperTradingApi } from '@/lib/api-service';
 
@@ -299,9 +300,26 @@ export function Zone1DecisionEngine() {
           <p className="text-xs text-slate-600">Backend will publish signals when market opens.</p>
         </div>
       )}
-      {signal && <DecisionSnapshot signal={signal} />}
-      {signal && <DirectionalSignalBlock signal={signal} />}
-      {signal && <TradeSetupBlock setup={setup} signal={signal} onExecute={handleExecute} isDisabled={isExecuteDisabled} />}
+      {signal && state.paperTradingEnabled ? (
+        // Paper Trading UI
+        <PaperTradingEntryPanel
+          signal={signal}
+          setup={setup}
+          isDisabled={isExecuteDisabled}
+          onExecute={(direction, isDryRun) => {
+            setIsDryRun(isDryRun);
+            setShowExecutionModal(true);
+          }}
+          isExecuting={isExecuting}
+        />
+      ) : (
+        // Normal Decision Engine UI
+        <>
+          {signal && <DecisionSnapshot signal={signal} />}
+          {signal && <DirectionalSignalBlock signal={signal} />}
+          {signal && <TradeSetupBlock setup={setup} signal={signal} onExecute={handleExecute} isDisabled={isExecuteDisabled} />}
+        </>
+      )}
       {conditions.length > 0 && <SignalConditionChecklist conditions={conditions} />}
       <CrossContractStrip crossContract={null} />
 
