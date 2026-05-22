@@ -7,7 +7,7 @@ import { useAuth } from '@/lib/auth-context';
 import { authApi } from '@/lib/api-service';
 
 export function ScreenWelcome() {
-  const { moveToScreen, setSessionId, setError } = useAuth();
+  const { moveToScreen, setSessionId, setError, setAuthenticated, updateHeartbeat } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
   const [loginUrl, setLoginUrl] = useState<string | null>(null);
 
@@ -32,6 +32,12 @@ export function ScreenWelcome() {
 
   const handleCredentialsLogin = () => {
     moveToScreen('setup-wizard');
+  };
+
+  const handleDevLogin = () => {
+    // Development-only quick auth for testing UI
+    setAuthenticated(true);
+    updateHeartbeat();
   };
 
   return (
@@ -85,6 +91,17 @@ export function ScreenWelcome() {
             >
               Use API Credentials
             </Button>
+
+            {process.env.NODE_ENV === 'development' && (
+              <Button
+                onClick={handleDevLogin}
+                variant="outline"
+                className="w-full h-10 text-xs text-amber-400 border-amber-700"
+                size="lg"
+              >
+                [DEV] Quick Login
+              </Button>
+            )}
           </div>
         </CardContent>
       </Card>
