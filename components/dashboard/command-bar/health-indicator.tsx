@@ -15,6 +15,18 @@ export function HealthIndicator() {
 
   const health = state.healthIndicator as any;
 
+  // Calculate status based on seconds since last candle
+  const secondsSinceLastCandle: number = health?.latency ?? 0; // Backend provides this in seconds
+  let computedStatus: string = 'healthy';
+  
+  if (secondsSinceLastCandle >= 300) {
+    computedStatus = 'critical'; // Red: >= 300s (5+ minutes without data)
+  } else if (secondsSinceLastCandle >= 90) {
+    computedStatus = 'warning'; // Yellow: >= 90s but < 300s
+  } else {
+    computedStatus = 'healthy'; // Green: < 90s
+  }
+
   const statusColor: Record<string, string> = {
     healthy: 'bg-green-500',
     warning: 'bg-yellow-500',
@@ -24,13 +36,11 @@ export function HealthIndicator() {
 
   const statusLabel: Record<string, string> = {
     healthy: 'Healthy',
-    warning: 'Warning',
-    critical: 'Critical',
+    warning: 'Degraded',
+    critical: 'Disconnected',
     offline: 'Offline',
   };
 
-  const status: string = health?.status ?? 'offline';
-  const latency: number | null = health?.latency ?? null;
   const pipelineStatus: string = health?.pipelineStatus ?? '—';
   const activeRegime: string = health?.activeRegime ?? '—';
   const sessionPhase: string = health?.sessionPhase ?? '—';
@@ -42,10 +52,10 @@ export function HealthIndicator() {
     <DropdownMenu open={isOpen} onOpenChange={setIsOpen}>
       <DropdownMenuTrigger asChild>
         <button className="flex items-center gap-2 px-3 py-1 rounded hover:bg-slate-700 transition-colors cursor-pointer">
-          <div className={`w-2.5 h-2.5 rounded-full ${statusColor[status] ?? statusColor.offline}`} />
-          <span className="text-xs font-medium text-slate-300">{statusLabel[status] ?? 'Offline'}</span>
+          <div className={`w-2.5 h-2.5 rounded-full animate-pulse ${statusColor[computedStatus] ?? statusColor.offline}`} />
+          <span className="text-xs font-medium text-slate-300">{statusLabel[computedStatus] ?? 'Offline'}</span>
           <span className="text-xs text-slate-500">
-            {latency != null ? `${Math.round(latency / 1000)}s` : '—'}
+            {secondsSinceLastCandle != null ? `${secondsSinceLastCandle}s ago` : '—'}
           </span>
         </button>
       </DropdownMenuTrigger>

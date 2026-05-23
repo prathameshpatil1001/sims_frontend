@@ -62,8 +62,8 @@ export function MasterLayout() {
 
       {/* Main Grid Container */}
       <div className="flex flex-1 overflow-hidden">
-        {/* Zone 1: Decision Engine (280px fixed) */}
-        <div className="w-70 border-r border-slate-700 bg-slate-900/50">
+        {/* Zone 1: Decision Engine (320px fixed) */}
+        <div className="w-80 border-r border-slate-700 bg-slate-900/50">
           <Zone1DecisionEngine />
         </div>
 
