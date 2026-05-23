@@ -5,11 +5,13 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/lib/auth-context';
 import { authApi } from '@/lib/api-service';
+import { AdminSettingsModal } from '@/components/admin/admin-settings-modal';
 
 export function ScreenWelcome() {
   const { moveToScreen, setSessionId, setError, setAuthenticated, updateHeartbeat } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
   const [loginUrl, setLoginUrl] = useState<string | null>(null);
+  const [showAdminSettings, setShowAdminSettings] = useState(false);
 
   const handleOAuthLogin = async () => {
     setIsLoading(true);
@@ -84,12 +86,12 @@ export function ScreenWelcome() {
             </div>
 
             <Button
-              onClick={handleCredentialsLogin}
+              onClick={() => setShowAdminSettings(true)}
               variant="outline"
               className="w-full h-10"
               size="lg"
             >
-              Use API Credentials
+              Admin / API Setup
             </Button>
 
             {process.env.NODE_ENV === 'development' && (
@@ -105,6 +107,11 @@ export function ScreenWelcome() {
           </div>
         </CardContent>
       </Card>
+
+      <AdminSettingsModal
+        isOpen={showAdminSettings}
+        onClose={() => setShowAdminSettings(false)}
+      />
     </div>
   );
 }

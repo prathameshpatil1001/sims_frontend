@@ -1,16 +1,9 @@
 'use client';
 
-import React, { useEffect, useRef, useState } from 'react';
-import { createChart, ColorType } from 'lightweight-charts';
+import React, { useState } from 'react';
 import { useDashboard } from '@/lib/dashboard-context';
-import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import type { Timeframe, OHLCData, MicrostructureTab, MicrostructureData } from '@/lib/zone2-types';
-
-interface ChartRendererProps {
-  ohlcData: OHLCData[];
-  timeframe: Timeframe;
-}
+import type { MicrostructureTab, MicrostructureData } from '@/lib/zone2-types';
 
 function ComprehensiveDataPanel() {
   const { state } = useDashboard();
@@ -359,18 +352,11 @@ function MicrostructurePanel({ activeTab, onTabChange, microstructure }: Microst
 
 export function Zone2Charts() {
   const { state, dispatch } = useDashboard();
-  const ohlcData = state.zone2State?.ohlcData || [];
   const microstructure = state.zone2State?.microstructure || null;
-  const [timeframe, setTimeframe] = useState<Timeframe>(state.zone2State?.currentTimeframe || '5m');
   const [activeMicroTab, setActiveMicroTab] = useState<MicrostructureTab>(
     state.zone2State?.activeMicroTab || 'volume-oi'
   );
   const [isTradingSuspended] = useState(false);
-
-  const handleTimeframeChange = (tf: Timeframe) => {
-    setTimeframe(tf);
-    dispatch({ type: 'UPDATE_ZONE2', payload: { currentTimeframe: tf } });
-  };
 
   const handleMicroTabChange = (tab: MicrostructureTab) => {
     setActiveMicroTab(tab);
@@ -379,13 +365,13 @@ export function Zone2Charts() {
 
   return (
     <div className="flex flex-col h-full gap-3 p-3 bg-gray-950 border-l border-gray-800">
-      {/* Timeframe Toggle and Contract Selector */}
+      {/* Contract Selector */}
       <div className="flex items-center gap-2 border-b border-gray-700 pb-2">
         <span className="text-xs text-gray-400 font-semibold mr-1">CONTRACT:</span>
         <select
           value={(state.selectedContract as any)?.symbol || (state.healthIndicator as any)?.contractId || 'SILVERM26JUNFUT'}
           onChange={(e) => dispatch({ type: 'SET_CONTRACT', payload: { symbol: e.target.value } as any })}
-          className="bg-gray-800 text-xs text-white px-2 py-1 h-7 border border-gray-700 rounded mr-4 focus:outline-none focus:border-blue-500"
+          className="bg-gray-800 text-xs text-white px-2 py-1 h-7 border border-gray-700 rounded focus:outline-none focus:border-blue-500"
         >
           <option value="SILVERM26JUNFUT">SILVERM26JUNFUT</option>
           <option value="SILVERM26AUGFUT">SILVERM26AUGFUT</option>
@@ -393,22 +379,6 @@ export function Zone2Charts() {
           <option value="SILVERMIC26AUGFUT">SILVERMIC26AUGFUT</option>
         </select>
         
-        <span className="text-xs text-gray-400 font-semibold mr-1">TIMEFRAME:</span>
-        <div className="flex gap-1">
-          {(['1m', '2m', '5m', '10m'] as Timeframe[]).map((tf) => (
-            <Button
-              key={tf}
-              size="sm"
-              variant={timeframe === tf ? 'default' : 'outline'}
-              onClick={() => handleTimeframeChange(tf)}
-              className={`text-xs h-7 px-2 ${
-                timeframe === tf ? 'bg-blue-600 hover:bg-blue-700' : 'bg-gray-800 hover:bg-gray-700'
-              }`}
-            >
-              {tf}
-            </Button>
-          ))}
-        </div>
         {isTradingSuspended && (
           <div className="ml-auto px-2 py-1 bg-red-900 border border-red-700 rounded text-xs text-red-300 font-semibold">
             TRADING SUSPENDED

@@ -2,14 +2,11 @@
 
 import { useEffect } from 'react';
 import { useAuth } from '@/lib/auth-context';
-import { useDashboard } from '@/lib/dashboard-context';
 import { monitoringApi, authApi } from '@/lib/api-service';
 import { Button } from '@/components/ui/button';
-import { Switch } from '@/components/ui/switch';
 
 export function SessionStrip() {
   const { state, setSessionHealth, updateHeartbeat, logout } = useAuth();
-  const { state: dashboardState, dispatch } = useDashboard();
 
   // Use GET /health as an implicit heartbeat — no dedicated endpoint needed
   useEffect(() => {
@@ -94,21 +91,6 @@ export function SessionStrip() {
         </div>
 
         <div className="flex items-center gap-3">
-          {/* Paper Trading Toggle */}
-          <div className="flex items-center gap-2 px-3 py-1 rounded bg-slate-800 border border-slate-600">
-            <span className="text-xs font-medium text-slate-300">Paper Trading</span>
-            <Switch
-              checked={dashboardState.paperTradingEnabled}
-              onCheckedChange={(checked) => {
-                dispatch({
-                  type: 'TOGGLE_PAPER_TRADING',
-                  payload: checked,
-                });
-              }}
-              className="h-4 w-7"
-            />
-          </div>
-
           <Button
             onClick={handleLogout}
             variant="ghost"

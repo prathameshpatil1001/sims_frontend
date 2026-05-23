@@ -5,7 +5,7 @@ import { useDashboard } from '@/lib/dashboard-context';
 import { X } from 'lucide-react';
 import type { OverlayType } from '@/lib/zone4-overlay-types';
 
-const overlayConfigs: Record<OverlayType, { title: string; description: string }> = {
+const overlayConfigs: Record<string, { title: string; description: string }> = {
   'composite-confidence': {
     title: 'Composite Confidence Fusion',
     description: 'Weighted contribution of all signal components',
@@ -53,6 +53,26 @@ const overlayConfigs: Record<OverlayType, { title: string; description: string }
   'signal-details': {
     title: 'Signal Details Deep Dive',
     description: 'Complete signal component breakdown',
+  },
+  'liquidity-regime': {
+    title: 'Liquidity Regime & Transition',
+    description: 'Current and predicted market liquidity state',
+  },
+  'volatility-regime': {
+    title: 'Volatility Regime Engine',
+    description: 'Market volatility classification and forecasting',
+  },
+  'session-event-risk': {
+    title: 'Session & Event Risk',
+    description: 'Trading session phase and economic event exposure',
+  },
+  'institutional-bias': {
+    title: 'Institutional Bias (MCX OI)',
+    description: 'Large trader positioning and trap risk analysis',
+  },
+  'mtf-alignment': {
+    title: 'MTF Alignment Engine',
+    description: 'Multi-timeframe directional consensus',
   },
 };
 

@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { useDashboard } from '@/lib/dashboard-context';
 import { Button } from '@/components/ui/button';
+import { Switch } from '@/components/ui/switch';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { PaperTradingEntryPanel } from './paper-trading-entry-panel';
 import type { DirectionalSignal, SignalCondition, TradeSetup, ConditionStatus } from '@/lib/zone1-types';
@@ -13,12 +14,18 @@ import { paperTradingApi } from '@/lib/api-service';
 
 interface DecisionSnapshotProps {
   signal: DirectionalSignal | null;
+  conditions?: SignalCondition[];
 }
 
-function DecisionSnapshot({ signal }: DecisionSnapshotProps) {
+function DecisionSnapshot({ signal, conditions = [] }: DecisionSnapshotProps) {
   if (!signal) return null;
 
-  const confidenceColor = signal.confidence >= 75 ? 'bg-green-900' : signal.confidence >= 60 ? 'bg-amber-900' : 'bg-red-900';
+  const confidenceRing = signal.confidence >= 75 ? 'ring-green-500' : signal.confidence >= 60 ? 'ring-amber-500' : 'ring-red-500';
+  const confidenceBg = signal.confidence >= 75 ? 'bg-green-900/20' : signal.confidence >= 60 ? 'bg-amber-900/20' : 'bg-red-900/20';
+  const confidenceText = signal.confidence >= 75 ? 'text-green-400' : signal.confidence >= 60 ? 'text-amber-400' : 'text-red-400';
+  
+  const passedConditions = conditions.filter(c => c.status === 'pass').length;
+  const totalConditions = conditions.length;
 
   return (
     <div className="space-y-2">
@@ -27,20 +34,20 @@ function DecisionSnapshot({ signal }: DecisionSnapshotProps) {
         <div className="bg-gray-900 rounded p-2 text-center border border-gray-700">
           <div className="text-xs text-gray-400">Direction</div>
           <div className={`text-sm font-bold ${signal.direction === 'LONG' ? 'text-green-400' : 'text-red-400'}`}>
-            {signal.direction}
+            {signal.direction === 'LONG' ? '▲ LONG' : '▼ SHORT'}
           </div>
         </div>
-        <div className={`${confidenceColor} rounded p-2 text-center border border-gray-700`}>
-          <div className="text-xs text-gray-200">Confidence</div>
-          <div className="text-sm font-bold text-white">{signal.confidence}%</div>
+        <div className={`rounded p-2 text-center border-2 ${confidenceRing} ${confidenceBg}`}>
+          <div className="text-xs text-gray-300">Confidence</div>
+          <div className={`text-sm font-bold ${confidenceText}`}>{signal.confidence}%</div>
         </div>
         <div className="bg-gray-900 rounded p-2 text-center border border-gray-700">
           <div className="text-xs text-gray-400">Signal Type</div>
-          <div className="text-xs font-mono text-gray-300">{signal.signalType.slice(0, 8)}</div>
+          <div className="text-xs font-semibold text-cyan-400 uppercase">{signal.signalType.slice(0, 10)}</div>
         </div>
         <div className="bg-gray-900 rounded p-2 text-center border border-gray-700">
-          <div className="text-xs text-gray-400">Checklist</div>
-          <div className="text-sm font-bold text-blue-400">10/11 ✓</div>
+          <div className="text-xs text-gray-400">Conditions</div>
+          <div className="text-sm font-bold text-blue-400">{passedConditions}/{totalConditions} ✓</div>
         </div>
       </div>
     </div>
@@ -95,33 +102,69 @@ interface TradeSetupBlockProps {
 }
 
 function TradeSetupBlock({ setup, signal, onExecute, isDisabled }: TradeSetupBlockProps) {
+  const dispatch = useDashboard().dispatch;
+  
   if (!setup) return null;
+
+  const riskAmount = Math.abs(setup.entry - setup.stopLoss);
+  const profitTarget1 = Math.abs(setup.target1 - setup.entry);
+  const profitTarget2 = Math.abs(setup.target2 - setup.entry);
+  const marginRequired = setup.positionSize * setup.entry * 0.04; // 4% SPAN for silver futures
+  const riskPercent = (riskAmount / setup.entry) * 100;
+  const rrRatio = setup.riskReward;
+  const rrPercent = (rrRatio / (1 + rrRatio)) * 100; // Normalize for visual
 
   return (
     <div className="space-y-2">
       <h3 className="text-xs font-semibold text-gray-300">TRADE SETUP</h3>
       <div className="bg-gray-900 rounded border border-gray-700 p-3 space-y-2">
+        {/* Sticky header with symbol and LTP */}
+        <div className="flex justify-between items-center pb-2 border-b border-gray-700">
+          <div className="text-xs text-gray-400">SILVERM26JUN</div>
+          <div className="text-sm font-bold text-white">₹{setup.entry.toLocaleString('en-IN')}</div>
+        </div>
+
         <div className="grid grid-cols-2 gap-2 text-xs">
           <div>
             <div className="text-gray-400">Entry</div>
-            <div className="text-white font-mono">{setup.entry.toLocaleString()}</div>
+            <div className="text-white font-mono">₹{setup.entry.toLocaleString('en-IN')}</div>
           </div>
           <div>
             <div className="text-gray-400">Stop Loss</div>
-            <div className="text-red-400 font-mono">{setup.stopLoss.toLocaleString()}</div>
+            <div className="text-red-400 font-mono">₹{setup.stopLoss.toLocaleString('en-IN')}</div>
           </div>
           <div>
             <div className="text-gray-400">Target 1</div>
-            <div className="text-green-400 font-mono">{setup.target1.toLocaleString()}</div>
+            <div className="text-green-400 font-mono">₹{setup.target1.toLocaleString('en-IN')}</div>
           </div>
           <div>
             <div className="text-gray-400">Target 2</div>
-            <div className="text-green-400 font-mono">{setup.target2.toLocaleString()}</div>
+            <div className="text-green-400 font-mono">₹{setup.target2.toLocaleString('en-IN')}</div>
           </div>
         </div>
-        <div className="flex justify-between text-xs bg-gray-800 rounded p-2">
-          <span className="text-gray-400">Risk:Reward</span>
-          <span className="text-yellow-400 font-bold">1:{setup.riskReward.toFixed(1)}</span>
+
+        {/* R:R Visual Bar */}
+        <div className="space-y-1">
+          <div className="flex justify-between text-xs">
+            <span className="text-gray-400">Risk:Reward</span>
+            <span className="text-yellow-400 font-bold">1:{rrRatio.toFixed(1)}</span>
+          </div>
+          <div className="flex gap-0.5 bg-gray-800 rounded overflow-hidden h-2">
+            <div className="bg-red-500" style={{ width: `${100 / (rrRatio + 1)}%` }} />
+            <div className="bg-green-500" style={{ width: `${(rrRatio / (rrRatio + 1)) * 100}%` }} />
+          </div>
+        </div>
+
+        {/* Margin & Risk Info */}
+        <div className="grid grid-cols-2 gap-2 text-xs">
+          <div className="bg-gray-800 rounded p-2">
+            <div className="text-gray-400">Margin Required</div>
+            <div className="text-blue-400 font-bold">₹{marginRequired.toLocaleString('en-IN', { maximumFractionDigits: 0 })}</div>
+          </div>
+          <div className="bg-gray-800 rounded p-2">
+            <div className="text-gray-400">Risk Per Trade</div>
+            <div className="text-yellow-400 font-bold">{riskPercent.toFixed(2)}%</div>
+          </div>
         </div>
         <div className="flex justify-between text-xs bg-gray-800 rounded p-2">
           <span className="text-gray-400">Position Size</span>
@@ -131,20 +174,50 @@ function TradeSetupBlock({ setup, signal, onExecute, isDisabled }: TradeSetupBlo
           <span className="text-gray-400">Fill Probability</span>
           <span className="text-cyan-400 font-bold">{(setup.fillProbability * 100).toFixed(0)}%</span>
         </div>
+
+        {/* Paper Trading Toggle */}
+        <div className="flex items-center justify-between py-2 border-t border-gray-700 mt-2">
+          <div className="flex items-center gap-2">
+            <div className={`w-2 h-2 rounded-full ${signal?.paperTradingEnabled ? 'bg-blue-400' : 'bg-gray-600'}`} />
+            <span className="text-xs text-gray-400">Paper Trading</span>
+          </div>
+          <Switch
+            checked={signal?.paperTradingEnabled || false}
+            onCheckedChange={async (checked) => {
+              try {
+                await paperTradingApi.setMode(checked);
+                dispatch({ type: 'TOGGLE_PAPER_TRADING', payload: checked });
+              } catch (err) {
+                console.error('[v0] Failed to toggle paper trading mode:', err);
+              }
+            }}
+            className="h-4 w-7"
+          />
+        </div>
+
         <div className="flex flex-col gap-2 mt-4">
           <Button 
             onClick={() => onExecute(false)} 
-            disabled={isDisabled}
+            disabled={isDisabled || !signal?.paperTradingEnabled}
             className={`w-full ${
-              signal?.direction === 'LONG' 
-                ? 'bg-green-600 hover:bg-green-700' 
-                : signal?.direction === 'SHORT'
-                ? 'bg-red-600 hover:bg-red-700'
-                : 'bg-gray-600 hover:bg-gray-700'
+              signal?.paperTradingEnabled
+                ? signal?.direction === 'LONG' 
+                  ? 'bg-blue-600 hover:bg-blue-700' 
+                  : signal?.direction === 'SHORT'
+                  ? 'bg-blue-600 hover:bg-blue-700'
+                  : 'bg-blue-600 hover:bg-blue-700'
+                : 'bg-gray-700 hover:bg-gray-700'
             } disabled:bg-gray-800 disabled:text-gray-600 text-white font-bold tracking-wide`}
             size="sm"
+            title={!signal?.paperTradingEnabled ? 'Enable paper trading first' : ''}
           >
-            {signal?.direction === 'LONG' ? '▲ ENTER LONG' : signal?.direction === 'SHORT' ? '▼ ENTER SHORT' : 'ENTER TRADE'}
+            {signal?.paperTradingEnabled 
+              ? signal?.direction === 'LONG' 
+                ? '▲ PAPER LONG' 
+                : signal?.direction === 'SHORT'
+                ? '▼ PAPER SHORT'
+                : 'PAPER TRADE'
+              : `Enable paper trading to trade`}
           </Button>
           <div className="flex gap-2">
             <Button 
@@ -173,6 +246,10 @@ interface SignalConditionChecklistProps {
 }
 
 function SignalConditionChecklist({ conditions }: SignalConditionChecklistProps) {
+  const [expandAll, setExpandAll] = React.useState(false);
+  const displayedCount = expandAll ? conditions.length : Math.min(5, conditions.length);
+  const passedCount = conditions.filter(c => c.status === 'pass').length;
+
   const statusIcon = (status: ConditionStatus) => {
     switch (status) {
       case 'pass': return '✓';
@@ -193,9 +270,19 @@ function SignalConditionChecklist({ conditions }: SignalConditionChecklistProps)
 
   return (
     <div className="space-y-2">
-      <h3 className="text-xs font-semibold text-gray-300">SIGNAL CONDITIONS ({conditions.filter(c => c.status === 'pass').length}/{conditions.length})</h3>
-      <div className="bg-gray-900 rounded border border-gray-700 p-2 max-h-48 overflow-y-auto space-y-1">
-        {conditions.map((condition) => (
+      <div className="flex items-center justify-between">
+        <h3 className="text-xs font-semibold text-gray-300">SIGNAL CONDITIONS ({passedCount}/{conditions.length})</h3>
+        {conditions.length > 5 && (
+          <button
+            onClick={() => setExpandAll(!expandAll)}
+            className="text-xs text-blue-400 hover:text-blue-300 transition-colors"
+          >
+            {expandAll ? 'Show less' : `Show all ${conditions.length}`}
+          </button>
+        )}
+      </div>
+      <div className="bg-gray-900 rounded border border-gray-700 p-2 space-y-1">
+        {conditions.slice(0, displayedCount).map((condition) => (
           <div key={condition.id} className="flex items-center gap-2 text-xs p-1 hover:bg-gray-800 rounded cursor-pointer">
             <span className={`font-bold w-3 ${statusColor(condition.status)}`}>{statusIcon(condition.status)}</span>
             <span className="text-gray-400 flex-1">{condition.name}</span>
@@ -315,7 +402,7 @@ export function Zone1DecisionEngine() {
       ) : (
         // Normal Decision Engine UI
         <>
-          {signal && <DecisionSnapshot signal={signal} />}
+          {signal && <DecisionSnapshot signal={signal} conditions={conditions} />}
           {signal && <DirectionalSignalBlock signal={signal} />}
           {signal && <TradeSetupBlock setup={setup} signal={signal} onExecute={handleExecute} isDisabled={isExecuteDisabled} />}
         </>

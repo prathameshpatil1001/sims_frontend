@@ -310,6 +310,10 @@ export interface PositionsResponse {
 }
 
 export const paperTradingApi = {
+  /** Set paper trading mode (enabled/disabled) and notify backend */
+  setMode: (enabled: boolean) =>
+    request<{ success: boolean; mode: string }>('POST', '/api/paper-trading/set-mode', { enabled }),
+
   getPositions: () => request<PositionsResponse>('GET', '/api/paper-trading/positions'),
   getTradeHistory: () => request<TradeHistoryResponse>('GET', '/api/paper-trading/trade-history'),
   openEntry: (body: {
@@ -331,6 +335,30 @@ export const paperTradingApi = {
 };
 
 
+
+// ─── ADMIN ────────────────────────────────────────────────────────────────────
+
+export const adminApi = {
+  /** Verify admin credentials — returns short-lived admin token */
+  verifyAdmin: (username: string, password: string) =>
+    request<{ admin_token: string }>('POST', '/api/admin/verify', { username, password }, false),
+
+  /** Update Zerodha API credentials (requires admin token) */
+  updateApiCredentials: (api_key: string, api_secret: string) =>
+    request<{ success: boolean }>('POST', '/api/admin/credentials', { api_key, api_secret }),
+
+  /** Change admin password */
+  changeAdminPassword: (current: string, newPassword: string) =>
+    request<{ success: boolean }>('POST', '/api/admin/change-password', { current, new_password: newPassword }),
+
+  /** Get current threshold values */
+  getThresholds: () =>
+    request<Record<string, number>>('GET', '/api/admin/thresholds'),
+
+  /** Update a single threshold */
+  updateThreshold: (key: string, value: number) =>
+    request<{ success: boolean }>('POST', '/api/admin/thresholds', { key, value }),
+};
 
 // ─── DATA & LOGS ──────────────────────────────────────────────────────────────
 
