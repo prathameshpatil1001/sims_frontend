@@ -157,6 +157,7 @@ export interface HealthResponse {
   };
   market: {
     last_candle_timestamp: string | null;
+    tick_latency_ms?: number | null;
     seconds_since_last_candle: number | null;
     last_candle_symbol: string | null;
     active_regime: string | null;
@@ -266,6 +267,11 @@ export const analysisApi = {
     request<{ candles: unknown[]; symbol: string; timeframe: string }>(
       'GET',
       `/api/analysis/candles/${encodeURIComponent(symbol)}?timeframe=${timeframe}&limit=${limit}`,
+    ),
+  getMicrostructure: (symbol: string, minutes = 30) =>
+    request<Record<string, unknown>>(
+      'GET',
+      `/api/analysis/microstructure/${encodeURIComponent(symbol)}?minutes=${minutes}`,
     ),
 };
 
