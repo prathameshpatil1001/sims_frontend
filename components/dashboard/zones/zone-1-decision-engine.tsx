@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { useDashboard } from '@/lib/dashboard-context';
 import { Button } from '@/components/ui/button';
+import { Switch } from '@/components/ui/switch';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { PaperTradingEntryPanel } from './paper-trading-entry-panel';
 import type { DirectionalSignal, SignalCondition, TradeSetup, ConditionStatus } from '@/lib/zone1-types';
@@ -131,20 +132,50 @@ function TradeSetupBlock({ setup, signal, onExecute, isDisabled }: TradeSetupBlo
           <span className="text-gray-400">Fill Probability</span>
           <span className="text-cyan-400 font-bold">{(setup.fillProbability * 100).toFixed(0)}%</span>
         </div>
+
+        {/* Paper Trading Toggle */}
+        <div className="flex items-center justify-between py-2 border-t border-gray-700 mt-2">
+          <div className="flex items-center gap-2">
+            <div className={`w-2 h-2 rounded-full ${signal?.paperTradingEnabled ? 'bg-blue-400' : 'bg-gray-600'}`} />
+            <span className="text-xs text-gray-400">Paper Trading</span>
+          </div>
+          <Switch
+            checked={signal?.paperTradingEnabled || false}
+            onCheckedChange={async (checked) => {
+              try {
+                await paperTradingApi.setMode(checked);
+                dispatch({ type: 'TOGGLE_PAPER_TRADING', payload: checked });
+              } catch (err) {
+                console.error('[v0] Failed to toggle paper trading mode:', err);
+              }
+            }}
+            className="h-4 w-7"
+          />
+        </div>
+
         <div className="flex flex-col gap-2 mt-4">
           <Button 
             onClick={() => onExecute(false)} 
-            disabled={isDisabled}
+            disabled={isDisabled || !signal?.paperTradingEnabled}
             className={`w-full ${
-              signal?.direction === 'LONG' 
-                ? 'bg-green-600 hover:bg-green-700' 
-                : signal?.direction === 'SHORT'
-                ? 'bg-red-600 hover:bg-red-700'
-                : 'bg-gray-600 hover:bg-gray-700'
+              signal?.paperTradingEnabled
+                ? signal?.direction === 'LONG' 
+                  ? 'bg-blue-600 hover:bg-blue-700' 
+                  : signal?.direction === 'SHORT'
+                  ? 'bg-blue-600 hover:bg-blue-700'
+                  : 'bg-blue-600 hover:bg-blue-700'
+                : 'bg-gray-700 hover:bg-gray-700'
             } disabled:bg-gray-800 disabled:text-gray-600 text-white font-bold tracking-wide`}
             size="sm"
+            title={!signal?.paperTradingEnabled ? 'Enable paper trading first' : ''}
           >
-            {signal?.direction === 'LONG' ? '▲ ENTER LONG' : signal?.direction === 'SHORT' ? '▼ ENTER SHORT' : 'ENTER TRADE'}
+            {signal?.paperTradingEnabled 
+              ? signal?.direction === 'LONG' 
+                ? '▲ PAPER LONG' 
+                : signal?.direction === 'SHORT'
+                ? '▼ PAPER SHORT'
+                : 'PAPER TRADE'
+              : `Enable paper trading to trade`}
           </Button>
           <div className="flex gap-2">
             <Button 

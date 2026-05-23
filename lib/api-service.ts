@@ -310,6 +310,10 @@ export interface PositionsResponse {
 }
 
 export const paperTradingApi = {
+  /** Set paper trading mode (enabled/disabled) and notify backend */
+  setMode: (enabled: boolean) =>
+    request<{ success: boolean; mode: string }>('POST', '/api/paper-trading/set-mode', { enabled }),
+
   getPositions: () => request<PositionsResponse>('GET', '/api/paper-trading/positions'),
   getTradeHistory: () => request<TradeHistoryResponse>('GET', '/api/paper-trading/trade-history'),
   openEntry: (body: {
