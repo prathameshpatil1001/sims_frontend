@@ -1,10 +1,12 @@
 'use client';
 
 import React, { createContext, useContext, useReducer, useCallback, useEffect } from 'react';
+import { authApi } from './api-service';
 import { AuthState, AuthScreen, SessionHealth } from './auth-types';
 
 interface AuthContextType {
   state: AuthState;
+  isRestoringSession: boolean;
   moveToScreen: (screen: AuthScreen) => void;
   setUsername: (username: string) => void;
   setSessionId: (sessionId: string) => void;
@@ -62,6 +64,7 @@ function authReducer(state: AuthState, action: AuthAction): AuthState {
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [state, dispatch] = useReducer(authReducer, initialState);
+  const [isRestoringSession, setIsRestoringSession] = React.useState(true);
 
   const moveToScreen = useCallback((screen: AuthScreen) => {
     dispatch({ type: 'MOVE_SCREEN', payload: screen });
@@ -95,6 +98,51 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     dispatch({ type: 'LOGOUT' });
   }, []);
 
+  // Session restoration on mount: check localStorage token and validate it
+  useEffect(() => {
+    const restoreSession = async () => {
+      try {
+        const token = authApi.getToken();
+        if (!token) {
+          setIsRestoringSession(false);
+          return;
+        }
+
+        // Try to validate existing token silently
+        const info = await authApi.getSessionInfo();
+        if (info.system_status.session_authenticated) {
+          dispatch({ type: 'SET_AUTHENTICATED', payload: true });
+          dispatch({ type: 'SET_SESSION_HEALTH', payload: 'healthy' });
+          dispatch({ type: 'MOVE_SCREEN', payload: 'dashboard' });
+          dispatch({ type: 'UPDATE_HEARTBEAT' });
+          sessionStorage.setItem('smis_was_authenticated', '1');
+          setIsRestoringSession(false);
+          return;
+        }
+      } catch (err) {
+        // Access token expired — try refresh cookie
+        try {
+          const refreshed = await authApi.refresh();
+          authApi.saveToken(refreshed.access_token);
+          dispatch({ type: 'SET_AUTHENTICATED', payload: true });
+          dispatch({ type: 'SET_SESSION_HEALTH', payload: 'healthy' });
+          dispatch({ type: 'MOVE_SCREEN', payload: 'dashboard' });
+          dispatch({ type: 'UPDATE_HEARTBEAT' });
+          sessionStorage.setItem('smis_was_authenticated', '1');
+          setIsRestoringSession(false);
+          return;
+        } catch {
+          // Both failed — clear stale token and show login
+          authApi.clearToken();
+        }
+      }
+
+      setIsRestoringSession(false);
+    };
+
+    restoreSession();
+  }, []);
+
   // Heartbeat monitor: track session health based on last heartbeat
   useEffect(() => {
     if (!state.isAuthenticated || !state.lastHeartbeat) return;
@@ -118,6 +166,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const value: AuthContextType = {
     state,
+    isRestoringSession,
     moveToScreen,
     setUsername,
     setSessionId,
