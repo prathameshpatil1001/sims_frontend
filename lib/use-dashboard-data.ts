@@ -41,9 +41,10 @@ export function useDashboardData(symbol: string | null) {
             : health.status === 'DEGRADED'
             ? 'warning'
             : 'critical',
-          latency: health.signals.seconds_since_last_signal
-            ? health.signals.seconds_since_last_signal * 1000
-            : 0,
+          // tick_latency_ms = actual processing latency (1–50ms) — shown in dropdown
+          latency: health.market.tick_latency_ms ?? 0,
+          // seconds_since_last_candle drives the health status dot and "Xs ago" label
+          secondsSinceLastCandle: health.market.seconds_since_last_candle ?? 0,
           feedHealth: health.market.websocket_connected ? 'connected' : 'disconnected',
           lastUpdate: Date.now(),
           uptime: health.system.uptime_seconds,

@@ -16,7 +16,8 @@ export function HealthIndicator() {
   const health = state.healthIndicator as any;
 
   // Calculate status based on seconds since last candle
-  const secondsSinceLastCandle: number = health?.latency ?? 0; // Backend provides this in seconds
+  const secondsSinceLastCandle: number = health?.secondsSinceLastCandle ?? 0;
+  const tickLatency: number = health?.latency ?? 0;
   let computedStatus: string = 'healthy';
   
   if (secondsSinceLastCandle >= 300) {
@@ -60,6 +61,9 @@ export function HealthIndicator() {
         </button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="start" className="bg-slate-800 border-slate-700 min-w-48">
+        <DropdownMenuItem disabled className="text-slate-400 text-xs">
+          Latency: {tickLatency}ms
+        </DropdownMenuItem>
         <DropdownMenuItem disabled className="text-slate-400 text-xs">
           Pipeline: {pipelineStatus}
         </DropdownMenuItem>
