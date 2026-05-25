@@ -103,7 +103,6 @@ export interface ConnectionStatusResponse {
   user_name: string | null;
   user_id: string | null;
   error: string | null;
-  access_token?: string;
 }
 
 export const authApi = {
@@ -137,17 +136,13 @@ export const authApi = {
   logout: () =>
     request<void>('POST', '/api/auth/logout', undefined, false),
 
-  /**
-   * Called after the Zerodha OAuth popup closes. Issues a refresh cookie on
-   * the main app window (the popup had its own cookie that we can't use).
-   * Requires a valid access token.
-   */
-  finalizeSession: () =>
-    request<LoginResponse>('POST', '/api/auth/finalize-session', undefined, true),
-
   /** Session info for login screen (last session, system status) */
   getSessionInfo: () =>
-    request<SessionInfoResponse>('GET', '/api/auth/session-info', undefined, true),
+    request<SessionInfoResponse>('GET', '/api/auth/session-info', undefined, false),
+
+  /** Finalize session on logout (clean up backend state) */
+  finalizeSession: () =>
+    request<void>('POST', '/api/auth/finalize-session', undefined, true),
 
   saveToken,
   clearToken,
@@ -166,7 +161,6 @@ export interface HealthResponse {
   };
   market: {
     last_candle_timestamp: string | null;
-    tick_latency_ms?: number | null;
     seconds_since_last_candle: number | null;
     last_candle_symbol: string | null;
     active_regime: string | null;
@@ -277,11 +271,9 @@ export const analysisApi = {
       'GET',
       `/api/analysis/candles/${encodeURIComponent(symbol)}?timeframe=${timeframe}&limit=${limit}`,
     ),
-  getMicrostructure: (symbol: string, minutes = 30) =>
-    request<Record<string, unknown>>(
-      'GET',
-      `/api/analysis/microstructure/${encodeURIComponent(symbol)}?minutes=${minutes}`,
-    ),
+  /** Fetch all intelligence modules for display in Zone 3 */
+  getModules: () =>
+    request<unknown[]>('GET', '/api/analysis/modules'),
 };
 
 // ─── PAPER TRADING ────────────────────────────────────────────────────────────

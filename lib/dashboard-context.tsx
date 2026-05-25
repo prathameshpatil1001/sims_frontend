@@ -40,6 +40,7 @@ const initialState: DashboardState = {
     isResizing: false,
     minWidth: 240,
     maxWidth: 420,
+    modules: [],
   },
   zone4State: {
     positions: [],
@@ -110,6 +111,11 @@ function dashboardReducer(state: DashboardState, action: DashboardAction): Dashb
       return {
         ...state,
         zone3State: { ...state.zone3State, isResizing: action.payload },
+      };
+    case 'UPDATE_ZONE3_MODULES':
+      return {
+        ...state,
+        zone3State: { ...state.zone3State, modules: action.payload },
       };
     case 'UPDATE_ZONE4':
       return {

@@ -7,7 +7,7 @@ import { useAuth } from '@/lib/auth-context';
 import { authApi } from '@/lib/api-service';
 
 export function ScreenAwaitingLogin() {
-  const { moveToScreen, setError } = useAuth();
+  const { state, moveToScreen, setError, setAuthenticated, setSessionHealth, updateHeartbeat } = useAuth();
   const [timeLeft, setTimeLeft] = useState(300); // 5 minutes
   const [step, setStep] = useState<string>('Waiting for Kite authorization…');
   const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -36,11 +36,10 @@ export function ScreenAwaitingLogin() {
           setStep('Loading instruments…');
         } else if (status.step === 'COMPLETE') {
           clearInterval(pollingRef.current!);
-          if (status.access_token) {
-            authApi.saveToken(status.access_token);
-          }
           setStep('Session established!');
-          // Navigate to connecting screen — it will finalize auth after showing the animation
+          setAuthenticated(true);
+          setSessionHealth('healthy');
+          updateHeartbeat();
           moveToScreen('connecting');
         } else if (status.step === 'FAILED' && status.error) {
           clearInterval(pollingRef.current!);
@@ -54,7 +53,7 @@ export function ScreenAwaitingLogin() {
     return () => {
       if (pollingRef.current) clearInterval(pollingRef.current);
     };
-  }, [moveToScreen, setError]);
+  }, [moveToScreen, setError, setAuthenticated, setSessionHealth, updateHeartbeat]);
 
   const handleBack = () => window.location.reload();
 
