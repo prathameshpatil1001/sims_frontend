@@ -2,11 +2,11 @@
 
 import { useEffect, useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
 import { useAuth } from '@/lib/auth-context';
+import { authApi } from '@/lib/api-service';
 
 export function ScreenConnecting() {
-  const { state, setAuthenticated, setError, setSessionHealth, updateHeartbeat } = useAuth();
+  const { setAuthenticated, setError, setSessionHealth, updateHeartbeat, moveToScreen } = useAuth();
   const [steps, setSteps] = useState({
     credentialsValidated: false,
     apiKeyVerified: false,
@@ -14,39 +14,59 @@ export function ScreenConnecting() {
     sessionEstablished: false,
   });
   const [isLoading, setIsLoading] = useState(true);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   useEffect(() => {
     const sequence = async () => {
       try {
-        // Step 1: Credentials validated (simulated)
-        await new Promise((resolve) => setTimeout(resolve, 800));
+        // Step 1: Verify token exists in localStorage (was saved by screen-awaiting-login)
+        await new Promise((resolve) => setTimeout(resolve, 500));
+        const token = authApi.getToken();
+        if (!token) throw new Error('No access token found. Please log in again.');
         setSteps((prev) => ({ ...prev, credentialsValidated: true }));
 
-        // Step 2: API Key verified (simulated)
-        await new Promise((resolve) => setTimeout(resolve, 800));
+        // Step 2: Validate the token against the backend AND get the refresh cookie
+        // issued on THIS window (the OAuth popup had its own cookie we can't use).
+        await new Promise((resolve) => setTimeout(resolve, 500));
+        const finalized = await authApi.finalizeSession();
+        // finalize-session returns a fresh access token — save it
+        if (finalized.access_token) {
+          authApi.saveToken(finalized.access_token);
+        }
         setSteps((prev) => ({ ...prev, apiKeyVerified: true }));
 
-        // Step 3: Token generated (simulated)
-        await new Promise((resolve) => setTimeout(resolve, 800));
+        // Step 3: Verify the Kite session is alive on the backend
+        const info = await authApi.getSessionInfo();
         setSteps((prev) => ({ ...prev, tokenGenerated: true }));
 
-        // Step 4: Session established (simulated)
-        await new Promise((resolve) => setTimeout(resolve, 800));
+        // Step 4: Confirm Kite session is authenticated
+        await new Promise((resolve) => setTimeout(resolve, 400));
+        if (!info.system_status.session_authenticated) {
+          throw new Error('Kite session not active on backend. Please re-login with Zerodha.');
+        }
         setSteps((prev) => ({ ...prev, sessionEstablished: true }));
 
-        // Update auth state
+        await new Promise((resolve) => setTimeout(resolve, 400));
+
+        // All checks passed — enter dashboard
         setAuthenticated(true);
         setSessionHealth('healthy');
         updateHeartbeat();
         setIsLoading(false);
       } catch (err) {
-        setError('Authentication failed. Please try again.');
+        // Clear stale token and return to welcome screen
+        authApi.clearToken();
+        const msg = err instanceof Error ? err.message : 'Authentication failed. Please try again.';
+        setErrorMsg(msg);
+        setError(msg);
         setIsLoading(false);
+        // Auto-redirect to welcome after 3 seconds so user can see what failed
+        setTimeout(() => moveToScreen('welcome'), 3000);
       }
     };
 
     sequence();
-  }, [setAuthenticated, setError, setSessionHealth, updateHeartbeat]);
+  }, [setAuthenticated, setError, setSessionHealth, updateHeartbeat, moveToScreen]);
 
   const StepItem = ({
     label,
@@ -80,9 +100,9 @@ export function ScreenConnecting() {
         <CardContent className="space-y-6">
           <div className="space-y-3">
             <StepItem label="Credentials validated" completed={steps.credentialsValidated} />
-            <StepItem label="API key verified" completed={steps.apiKeyVerified} />
-            <StepItem label="Token generated" completed={steps.tokenGenerated} />
-            <StepItem label="Session established" completed={steps.sessionEstablished} />
+            <StepItem label="Session finalized" completed={steps.apiKeyVerified} />
+            <StepItem label="Token verified" completed={steps.tokenGenerated} />
+            <StepItem label="Kite session established" completed={steps.sessionEstablished} />
           </div>
 
           {isLoading && (
@@ -93,18 +113,21 @@ export function ScreenConnecting() {
             </div>
           )}
 
-          {!isLoading && (
+          {!isLoading && !errorMsg && (
             <div className="bg-green-50 border border-green-200 rounded-lg p-4">
               <p className="text-sm text-green-900 font-medium">
-                ✓ Session established successfully!
+                ✓ Session established successfully! Entering dashboard…
               </p>
             </div>
           )}
 
-          {!isLoading && (
-            <Button className="w-full" onClick={() => window.location.href = '/'}>
-              Continue to Dashboard
-            </Button>
+          {!isLoading && errorMsg && (
+            <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+              <p className="text-sm text-red-900 font-medium">
+                ✗ {errorMsg}
+              </p>
+              <p className="text-xs text-red-700 mt-1">Returning to login in 3 seconds…</p>
+            </div>
           )}
         </CardContent>
       </Card>

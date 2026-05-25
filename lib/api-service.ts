@@ -103,6 +103,7 @@ export interface ConnectionStatusResponse {
   user_name: string | null;
   user_id: string | null;
   error: string | null;
+  access_token?: string;
 }
 
 export const authApi = {
@@ -136,9 +137,17 @@ export const authApi = {
   logout: () =>
     request<void>('POST', '/api/auth/logout', undefined, false),
 
+  /**
+   * Called after the Zerodha OAuth popup closes. Issues a refresh cookie on
+   * the main app window (the popup had its own cookie that we can't use).
+   * Requires a valid access token.
+   */
+  finalizeSession: () =>
+    request<LoginResponse>('POST', '/api/auth/finalize-session', undefined, true),
+
   /** Session info for login screen (last session, system status) */
   getSessionInfo: () =>
-    request<SessionInfoResponse>('GET', '/api/auth/session-info', undefined, false),
+    request<SessionInfoResponse>('GET', '/api/auth/session-info', undefined, true),
 
   saveToken,
   clearToken,
