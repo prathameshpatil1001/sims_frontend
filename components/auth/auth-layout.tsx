@@ -14,20 +14,7 @@ interface AuthLayoutProps {
 }
 
 export function AuthLayout({ children }: AuthLayoutProps) {
-  const { state, isRestoringSession } = useAuth();
-
-  // While checking localStorage token on mount, show a neutral splash to prevent
-  // the login screen from flashing before silent re-auth completes.
-  if (isRestoringSession) {
-    return (
-      <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-slate-900 to-slate-800">
-        <div className="flex flex-col items-center gap-4">
-          <div className="w-10 h-10 border-4 border-slate-600 border-t-sky-400 rounded-full animate-spin" />
-          <p className="text-slate-400 text-sm font-medium tracking-wide">Reconnecting…</p>
-        </div>
-      </div>
-    );
-  }
+  const { state } = useAuth();
 
   // If not authenticated, show auth screens
   if (!state.isAuthenticated) {

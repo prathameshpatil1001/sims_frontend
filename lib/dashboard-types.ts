@@ -68,6 +68,7 @@ export interface Zone3State {
   isResizing: boolean;
   minWidth: number;
   maxWidth: number;
+  modules: unknown[];
 }
 
 export interface DashboardState {
@@ -104,6 +105,7 @@ export type DashboardAction =
   | { type: 'CLOSE_CSV_VIEWER' }
   | { type: 'SET_ZONE3_WIDTH'; payload: number }
   | { type: 'SET_ZONE3_RESIZING'; payload: boolean }
+  | { type: 'UPDATE_ZONE3_MODULES'; payload: unknown[] }
   | { type: 'SET_ZONE4_EXPANDED'; payload: boolean }
   | { type: 'ARM_KILL_SWITCH'; payload: boolean }
   | { type: 'SET_KILL_SWITCH_COUNTDOWN'; payload: number }

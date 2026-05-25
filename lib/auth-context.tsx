@@ -143,6 +143,41 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     restoreSession();
   }, []);
 
+  // Session expiry probe: check every 5 minutes if session is still valid
+  useEffect(() => {
+    if (!state.isAuthenticated) return;
+
+    const probeInterval = setInterval(async () => {
+      try {
+        const info = await authApi.getSessionInfo();
+        
+        // Session expired - try to finalize and logout
+        if (!info.system_status.session_authenticated) {
+          try {
+            await authApi.finalizeSession();
+          } catch {
+            // Finalization failed, continue logout anyway
+          }
+          dispatch({ type: 'LOGOUT' });
+          authApi.clearToken();
+          setAuthenticated(false);
+        }
+      } catch (err: any) {
+        // Network error or 401 - logout user
+        try {
+          await authApi.finalizeSession();
+        } catch {
+          // Finalization failed, continue logout anyway
+        }
+        dispatch({ type: 'LOGOUT' });
+        authApi.clearToken();
+        setAuthenticated(false);
+      }
+    }, 5 * 60 * 1000); // 5 minutes
+
+    return () => clearInterval(probeInterval);
+  }, [state.isAuthenticated, setAuthenticated]);
+
   // Heartbeat monitor: track session health based on last heartbeat
   useEffect(() => {
     if (!state.isAuthenticated || !state.lastHeartbeat) return;

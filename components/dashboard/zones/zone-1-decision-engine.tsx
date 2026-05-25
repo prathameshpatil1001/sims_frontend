@@ -402,12 +402,29 @@ export function Zone1DecisionEngine() {
       ) : (
         // Normal Decision Engine UI
         <>
-          {signal && <DecisionSnapshot signal={signal} conditions={conditions} />}
-          {signal && <DirectionalSignalBlock signal={signal} />}
-          {signal && <TradeSetupBlock setup={setup} signal={signal} onExecute={handleExecute} isDisabled={isExecuteDisabled} />}
+          {signal ? (
+            <>
+              <DecisionSnapshot signal={signal} conditions={conditions} />
+              <DirectionalSignalBlock signal={signal} />
+              <TradeSetupBlock setup={setup} signal={signal} onExecute={handleExecute} isDisabled={isExecuteDisabled} />
+            </>
+          ) : (
+            <div className="flex flex-col items-center justify-center gap-3 py-8 text-center">
+              <div className="w-8 h-8 border-2 border-slate-600 border-t-blue-400 rounded-full animate-spin" />
+              <p className="text-xs text-slate-500">Waiting for signal data…</p>
+              <p className="text-xs text-slate-600">Backend will publish signals when market opens.</p>
+            </div>
+          )}
         </>
       )}
-      {conditions.length > 0 && <SignalConditionChecklist conditions={conditions} />}
+      {conditions.length > 0 ? (
+        <SignalConditionChecklist conditions={conditions} />
+      ) : (
+        <div className="flex flex-col items-center justify-center gap-2 py-4 text-center">
+          <div className="w-6 h-6 border-2 border-slate-600 border-t-slate-400 rounded-full animate-spin" />
+          <p className="text-xs text-slate-500">Waiting for conditions…</p>
+        </div>
+      )}
       <CrossContractStrip crossContract={null} />
 
       <Dialog open={showExecutionModal} onOpenChange={setShowExecutionModal}>

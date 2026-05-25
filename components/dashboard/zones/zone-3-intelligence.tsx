@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useDashboard } from '@/lib/dashboard-context';
+import { analysisApi } from '@/lib/api-service';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import type { IntelligenceModule } from '@/lib/zone3-types';
@@ -610,29 +611,37 @@ function generateMockModules(): IntelligenceModule[] {
 }
 
 export function Zone3Intelligence() {
-  const { state } = useDashboard();
-  const [modules, setModules] = useState<IntelligenceModule[]>([]);
+  const { state, dispatch } = useDashboard();
   const [selectedModuleId, setSelectedModuleId] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
-    // Load mock modules on mount
-    setModules(generateMockModules());
+    const fetchModules = async () => {
+      try {
+        setIsLoading(true);
+        const data = await analysisApi.getModules();
+        dispatch({
+          type: 'UPDATE_ZONE3_MODULES',
+          payload: data,
+        });
+      } catch (err) {
+        console.error('[v0] Failed to fetch intelligence modules:', err);
+      } finally {
+        setIsLoading(false);
+      }
+    };
 
-    // Simulate real-time updates at 1-second intervals
-    const interval = setInterval(() => {
-      setModules((prevModules) =>
-        prevModules.map((m) => ({
-          ...m,
-          timestamp: Date.now(),
-          confidence:
-            m.confidence +
-            (Math.random() > 0.5 ? 1 : -1) * Math.random() * 2,
-        }))
-      );
-    }, 1000);
+    // Initial fetch
+    fetchModules();
+
+    // Poll every 5 seconds for updates
+    const interval = setInterval(fetchModules, 5 * 1000);
 
     return () => clearInterval(interval);
-  }, []);
+  }, [dispatch]);
+
+  // Use modules from dashboard state or show loading state
+  const modules = state.zone3State?.modules || [];
 
   const directionCoreModules = modules.filter(
     (m) => m.section === 'direction-core'
@@ -656,51 +665,61 @@ export function Zone3Intelligence() {
       {/* Scrollable Content */}
       <ScrollArea className="flex-1">
         <div className="p-3 space-y-3">
-          {/* Direction Core Section */}
-          {directionCoreModules.length > 0 && (
+          {modules.length === 0 && !isLoading ? (
+            <div className="flex flex-col items-center justify-center gap-3 py-8 text-center">
+              <div className="w-8 h-8 border-2 border-slate-600 border-t-blue-400 rounded-full animate-spin" />
+              <p className="text-xs text-slate-500">Waiting for module data…</p>
+              <p className="text-xs text-slate-600">Backend is computing intelligence modules.</p>
+            </div>
+          ) : (
             <>
-              <SectionDivider title="Direction Core" />
-              <div className="space-y-2">
-                {directionCoreModules.map((module) => (
-                  <ModuleCard
-                    key={module.id}
-                    module={module}
-                    onSelect={setSelectedModuleId}
-                  />
-                ))}
-              </div>
-            </>
-          )}
+              {/* Direction Core Section */}
+              {directionCoreModules.length > 0 && (
+                <>
+                  <SectionDivider title="Direction Core" />
+                  <div className="space-y-2">
+                    {directionCoreModules.map((module) => (
+                      <ModuleCard
+                        key={module.id}
+                        module={module}
+                        onSelect={setSelectedModuleId}
+                      />
+                    ))}
+                  </div>
+                </>
+              )}
 
-          {/* Pressure & Flow Section */}
-          {pressureFlowModules.length > 0 && (
-            <>
-              <SectionDivider title="Pressure & Flow" />
-              <div className="space-y-2">
-                {pressureFlowModules.map((module) => (
-                  <ModuleCard
-                    key={module.id}
-                    module={module}
-                    onSelect={setSelectedModuleId}
-                  />
-                ))}
-              </div>
-            </>
-          )}
+              {/* Pressure & Flow Section */}
+              {pressureFlowModules.length > 0 && (
+                <>
+                  <SectionDivider title="Pressure & Flow" />
+                  <div className="space-y-2">
+                    {pressureFlowModules.map((module) => (
+                      <ModuleCard
+                        key={module.id}
+                        module={module}
+                        onSelect={setSelectedModuleId}
+                      />
+                    ))}
+                  </div>
+                </>
+              )}
 
-          {/* Environment Section */}
-          {environmentModules.length > 0 && (
-            <>
-              <SectionDivider title="Environment" />
-              <div className="space-y-2">
-                {environmentModules.map((module) => (
-                  <ModuleCard
-                    key={module.id}
-                    module={module}
-                    onSelect={setSelectedModuleId}
-                  />
-                ))}
-              </div>
+              {/* Environment Section */}
+              {environmentModules.length > 0 && (
+                <>
+                  <SectionDivider title="Environment" />
+                  <div className="space-y-2">
+                    {environmentModules.map((module) => (
+                      <ModuleCard
+                        key={module.id}
+                        module={module}
+                        onSelect={setSelectedModuleId}
+                      />
+                    ))}
+                  </div>
+                </>
+              )}
             </>
           )}
         </div>
